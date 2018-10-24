@@ -1,0 +1,163 @@
+---
+title: "Human Activity Recognition Project"
+author: "Roberto Preste"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+  html_document: 
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview  
+
+One thing that people regularly do is quantify *how much* of a particular activity they do, but they rarely quantify *how well* they do it. The goal of this project will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants who were asked to perform barbell lifts correctly and incorrectly in 5 different ways, and predict the manner in which they did the exercise. 
+More information can be found [on this web page](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har).  
+
+## Loading data  
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(caret)
+```
+
+Let's load the data into R.  
+
+```{r}
+training <- read.csv("pml-training.csv")
+dim(training)
+```
+
+```{r}
+testing <- read.csv("pml-testing.csv")
+dim(testing)
+```
+
+Saving the target variable from the `training` dataset and the problem ID from the `testing` dataset.  
+
+```{r}
+target <- training[, "classe"]
+prob_ids <- testing[, "problem_id"]
+```
+
+Let's see if our classes are balanced.  
+
+```{r, dpi=200}
+plot(target, main = "Target feature distribution", 
+     xlab = "classe", ylab = "Count", col = "dodgerblue")
+```
+
+
+## Data cleaning  
+
+Since the assignment requires us to use data from accelerometers on the belt, forearm, arm and dumbell, let's first select features related to them.  
+
+```{r}
+feats <- grepl("arm|belt|dumbell", names(training))
+training <- training[, feats]
+dim(training)
+```
+
+```{r}
+testing <- testing[, feats]
+dim(testing)
+```
+
+We have removed 46 columns, now we can drop all features having NA values, based on features in the `testing` dataset.  
+
+```{r}
+nonNA <- colSums(is.na(testing)) == 0
+training <- training[, nonNA]
+dim(training)
+```
+
+```{r}
+testing <- testing[, nonNA]
+dim(testing)
+```
+
+We kept 39 of the starting 160 features. This might not be the proper approach in some cases, but it should be alright for this project. As a final check, let's look for uninformative features, namely those having zero or near-zero variance.  
+
+```{r}
+nearZeroVar(training, saveMetrics = T)
+```
+
+It seems like all the selected features can be informative, so we can use them to build our models.  
+
+
+## Modeling  
+
+First of all, we need to create a training and testing subset from the `training` dataset, using respectively 70% and 30% of the starting data.  
+
+```{r}
+set.seed(420)
+training$classe <- target
+tridx <- createDataPartition(target, p = 0.8, list = F)
+df_train <- training[tridx, ]
+df_test <- training[-tridx, ]
+```
+
+Now we'll compare a couple of models. We can (hopefully) expect an error rate less than 1%.  
+Let's start using a simple classification tree model.  
+
+```{r}
+library(rpart)
+set.seed(420)
+fit_tree <- train(classe ~ ., data = df_train, method = "rpart")
+fit_tree
+```
+
+Let's see how well it works on our `df_test` data.  
+
+```{r}
+pred_tree <- predict(fit_tree, df_test)
+confusionMatrix(pred_tree, df_test$classe)
+```
+
+An accuracy of 0.54 is not very promising. We can try with a random forest model instead.  
+
+```{r}
+library(randomForest)
+set.seed(420)
+fit_rf <- randomForest(classe ~ ., data = df_train)
+fit_rf
+```
+
+The randomForest already takes care of cross validation, and we can see an error rate of 0.61%.
+
+Let's check its performance on the `df_test` subset.  
+
+```{r}
+pred_rf <- predict(fit_rf, df_test)
+confusionMatrix(pred_rf, df_test$classe)
+```
+
+With an accuracy of 0.9946, we can expect an out-of-sample error of 0.54%. We can safely conclude that this will be our model of choice for the rest of the project.   
+
+We might be curious about the most important features chosen by our model. Let's see the top 10.  
+
+```{r, dpi=200}
+varImpPlot(fit_rf, n.var = 10, main = "Random forest feature importance")
+```
+
+## Final prediction  
+
+Let's first retrain our random forest model on the whole `training` dataset, so we can use it for the actual prediction.  
+
+```{r}
+set.seed(420)
+fit <- randomForest(classe ~ ., data = training)
+```
+
+Now we can use the trained model to predict the `testing` data.  
+
+```{r}
+pred <- predict(fit, testing)
+# Actual answer not shown ;)
+# pred
+```
+
