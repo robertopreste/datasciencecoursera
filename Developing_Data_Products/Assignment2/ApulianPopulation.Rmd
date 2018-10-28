@@ -1,0 +1,117 @@
+---
+title: "Apulian Population"
+author: "Roberto Preste"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview  
+
+This presentation shows data about the population of the 5 major Apulian cities, gathered from demographic census every 10 years from 1911 to 2011. Data were scraped from Wikipedia.  
+
+Demographic census events in Italy usually take place every 10 years on the year ending in 1, with the exceptions of 1936, when a 5-year census programme was proposed but then abandoned, and 1941, when it wasn't performed due to war-related reasons.  
+For the sake of visualization, however, I annotated the 1936 values as belonging to 1941.  
+
+## Input data  
+
+Let's first load the required packages.  
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(plotly)
+```
+
+
+The code to create the population dataframe is not included here because it would not fit well in the presentation. It is available at [this link](https://gist.github.com/robertopreste/5097a2df146ae5545d6774c5e7e05fa3), if you are interested.  
+
+```{r, echo=FALSE}
+df <- tribble(
+    ~City, ~Year, ~Population, 
+    "Bari", 1911, 121633, 
+    "Bari", 1921, 136247, 
+    "Bari", 1931, 172600, 
+    "Bari", 1941, 197918, 
+    "Bari", 1951, 268183, 
+    "Bari", 1961, 312023, 
+    "Bari", 1971, 357274, 
+    "Bari", 1981, 371022, 
+    "Bari", 1991, 342309, 
+    "Bari", 2001, 316532, 
+    "Bari", 2011, 315933, 
+    "Brindisi", 1911, 25692, 
+    "Brindisi", 1921, 35440, 
+    "Brindisi", 1931, 39885, 
+    "Brindisi", 1941, 41699, 
+    "Brindisi", 1951, 58313, 
+    "Brindisi", 1961, 70657, 
+    "Brindisi", 1971, 81893, 
+    "Brindisi", 1981, 89786, 
+    "Brindisi", 1991, 95383, 
+    "Brindisi", 2001, 89081, 
+    "Brindisi", 2011, 88812, 
+    "Foggia", 1911, 75648, 
+    "Foggia", 1921, 66772, 
+    "Foggia", 1931, 55763, 
+    "Foggia", 1941, 62340, 
+    "Foggia", 1951, 97504, 
+    "Foggia", 1961, 118608, 
+    "Foggia", 1971, 141711, 
+    "Foggia", 1981, 156467, 
+    "Foggia", 1991, 156268, 
+    "Foggia", 2001, 155203, 
+    "Foggia", 2011, 147036, 
+    "Lecce", 1911, 34958, 
+    "Lecce", 1921, 39556, 
+    "Lecce", 1931, 44368, 
+    "Lecce", 1941, 49261, 
+    "Lecce", 1951, 63831, 
+    "Lecce", 1961, 75297, 
+    "Lecce", 1971, 83050, 
+    "Lecce", 1981, 91289, 
+    "Lecce", 1991, 100884, 
+    "Lecce", 2001, 83303, 
+    "Lecce", 2011, 95610, 
+    "Taranto", 1911, 65238, 
+    "Taranto", 1921, 104379, 
+    "Taranto", 1931, 111616, 
+    "Taranto", 1941, 117722, 
+    "Taranto", 1951, 168941, 
+    "Taranto", 1961, 194609, 
+    "Taranto", 1971, 227342, 
+    "Taranto", 1981, 244101, 
+    "Taranto", 1991, 232334, 
+    "Taranto", 2001, 202038, 
+    "Taranto", 2011, 200154
+)
+```
+
+## Plot draft  
+
+Let's first create a `ggplot2` visualization.  
+
+```{r}
+g <- df %>% 
+    ggplot(aes(x = Year, y = Population, color = City)) + 
+    geom_line() + 
+    scale_y_continuous(breaks = c(100000, 200000, 300000), 
+                       labels = c("100", "200", "300")) + 
+    scale_x_continuous(breaks = c(1911, 1921, 1931, 1941, 1951, 
+                                  1961, 1971, 1981, 1991, 2001, 
+                                  2011)) + 
+    labs(y = "Population (thousands)", 
+         title = "Population in Apulian cities 1911-2011")
+```
+
+Now we can convert this plot to Plotly and show it.  
+
+## Plot  
+
+```{r}
+ggplotly(g)
+```
+
+
