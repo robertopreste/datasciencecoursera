@@ -1,0 +1,58 @@
+---
+title: "Most populated Apulian cities"
+author: "Roberto Preste"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This simple map shows the most populated cities in Apulia (IT).  
+
+Let's first load the required packages.  
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(leaflet)
+```
+
+This is the raw data that I scraped from [Wikipedia](https://it.wikipedia.org/wiki/Puglia).  
+
+```{r}
+df <- tribble(
+    ~City, ~Population, ~Province, ~Long, ~Lat, 
+    "Bari", 325183, "BA", 16.866667, 41.125278, 
+    "Taranto", 200385, "TA", 17.240833, 40.418056, 
+    "Foggia", 151975, "FG", 15.566667, 41.466667, 
+    "Andria", 100440, "BAT", 16.308333, 41.231667, 
+    "Lecce", 94927, "LE", 18.169139, 40.352011, 
+    "Barletta", 94732, "BAT", 16.283333, 41.316667, 
+    "Brindisi", 88302, "BR", 17.945833, 40.638333, 
+    "Altamura", 70406, "BA", 16.55, 40.816667, 
+    "Molfetta", 59874, "BA", 16.6, 41.2, 
+    "Cerignola", 58439, "FG", 15.9, 41.266667, 
+    "Manfredonia", 57335, "FG", 15.916667, 41.633333, 
+    "Trani", 56217, "BAT", 16.416667, 41.266667, 
+    "Bitonto", 55553, "BA", 16.691667, 41.108333, 
+    "Bisceglie", 55422, "BAT", 16.502061, 41.240933, 
+    "San Severo", 53957, "FG", 15.379278, 41.695111, 
+    "Monopoli", 49133, "BA", 17.173333, 40.954722, 
+    "Martina Franca", 49222, "TA", 17.333333, 40.7, 
+    "Corato", 48298, "BA", 16.4, 41.15, 
+    "Gravina in Puglia", 43860, "BA", 16.423333, 40.820556
+)
+```
+
+And this is the interactive map; the larger the circle marker, the more populated the city.  
+
+```{r}
+df %>% 
+    leaflet() %>% 
+    addTiles() %>% 
+    addCircleMarkers(lng = ~Long, lat = ~Lat, radius = ~Population / 10000, 
+                     popup = paste0("City: ", df$City, " (", df$Province, 
+                                    ")<br>Population: ", df$Population))
+```
+
