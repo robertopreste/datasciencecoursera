@@ -14,13 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Synopsis  
 
-The aim of this capstone project is to apply data science techniques in the area of Natural Language Processing using R. The starting dataset for this project is represented by a large corpus of documents, which will be used to build a simple but effective predictive text model.  
-This milestone report will explain the basics steps taken to load and sample the data, clean it and organize it in a useful manner to perform the subsequent modeling.  
+The aim of this capstone project is to apply data science techniques in the area of Natural Language Processing using R.  
+The starting dataset for this project is represented by a large corpus of documents, which will be used to build a simple but effective predictive text model. The data can be found [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).  
+
+This milestone report will explain the basics steps taken to load and sample the data, clean it and organize it in a useful manner to perform the subsequent modeling tasks.  
 
 ## Getting the data  
 
-The original data can be found [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).  
-After downloading and unzipping them in the `data/` directory, we can check which files we have.  
+After downloading and unzipping the data in the `data/` directory, we can check which files we have.  
 
 ```{r, include=FALSE}
 if (!file.exists("./data")) {
@@ -60,7 +61,7 @@ library(plotly)
 ```
 
 
-Let's get some basic statistics about these files; specifically, we will find their size in MB, number of lines and number of words.  
+Let's get some basic statistics about these files; specifically, their size in MB, number of lines and number of words.  
 
 ```{r, include=FALSE}
 blogs_size <- file.info(blogs_path)$size / 1024^2
@@ -280,5 +281,7 @@ All these choices might impair the accuracy of the prediction model, but hopeful
 
 The n-grams plots showed that some words are way more common than some others, and from the 2- and 3-grams plots it is evident how some of these words frequently appear together. This will be exploited for the creation of the prediction algorithm, which will probably take advantage of a back-off model, where the model would first look at the most common 3-grams (or maybe also 4-grams) in order to predict the next word, if nothing is found it will look in the 2-grams model and finally it will use the single-words model.  
 The final prediction application will be implemented as a ShinyApp.  
+
+All the code for this report as well as for the future development of the app will be available on [this GitHub repository](https://github.com/robertopreste/datasciencecoursera/tree/master/Capstone_Project).  
 
 
