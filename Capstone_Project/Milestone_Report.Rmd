@@ -1,0 +1,284 @@
+---
+title: "Capstone Project - Milestone Report"
+author: "Roberto Preste"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Synopsis  
+
+The aim of this capstone project is to apply data science techniques in the area of Natural Language Processing using R. The starting dataset for this project is represented by a large corpus of documents, which will be used to build a simple but effective predictive text model.  
+This milestone report will explain the basics steps taken to load and sample the data, clean it and organize it in a useful manner to perform the subsequent modeling.  
+
+## Getting the data  
+
+The original data can be found [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).  
+After downloading and unzipping them in the `data/` directory, we can check which files we have.  
+
+```{r, include=FALSE}
+if (!file.exists("./data")) {
+    dir.create("./data")
+}
+
+url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+if (!file.exists("./data/Coursera-SwiftKey.zip")) {
+    download.file(url, destfile = "./data/Coursera-SwiftKey.zip")
+}
+if (!file.exists("./data/final")) {
+    unzip("./data/Coursera-SwiftKey.zip", exdir = "./data/")
+}
+```
+
+```{r}
+list.files("./data/final/", recursive = T)
+```
+
+There are three different files, `blogs.txt`, `news.txt` and `twitter.txt` for each of the four provided languages, DE, US, FI and RU. We will use the US dataset for this project.  
+
+```{r, include=FALSE}
+blogs_path <- "./data/final/en_US/en_US.blogs.txt"
+news_path <- "./data/final/en_US/en_US.news.txt"
+twitter_path <- "./data/final/en_US/en_US.twitter.txt"
+```
+
+## Files statistics  
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+library(stringi)
+library(tidyverse)
+library(knitr)
+library(tm)
+library(RWeka)
+library(plotly)
+```
+
+
+Let's get some basic statistics about these files; specifically, we will find their size in MB, number of lines and number of words.  
+
+```{r, include=FALSE}
+blogs_size <- file.info(blogs_path)$size / 1024^2
+news_size <- file.info(news_path)$size / 1024^2 
+twitter_size <- file.info(twitter_path)$size / 1024^2
+```
+
+```{r, cache=TRUE, include=FALSE}
+con <- file(blogs_path, "r")
+temp <- readLines(con, skipNul = T)
+blogs_len <- length(temp)
+blogs_words <- sum(stri_count_words(temp))
+blogs_df <- tibble(line = temp)
+close(con)
+rm(temp)
+```
+
+```{r, cache=TRUE, include=FALSE}
+con <- file(news_path, "r")
+temp <- readLines(con, skipNul = T)
+news_len <- length(temp)
+news_words <- sum(stri_count_words(temp))
+news_df <- tibble(line = temp)
+close(con)
+rm(temp)
+```
+
+```{r, cache=TRUE, include=FALSE}
+con <- file(twitter_path, "r")
+temp <- readLines(con, skipNul = T)
+twitter_len <- length(temp)
+twitter_words <- sum(stri_count_words(temp))
+twitter_df <- tibble(line = temp)
+close(con)
+rm(temp)
+```
+
+```{r}
+corp_stats <- tibble(corpus = c("en_US.blogs.txt", "en_US.news.txt", "en_US.twitter.txt"), 
+                     size_MB = c(blogs_size, news_size, twitter_size), 
+                     num_lines = c(blogs_len, news_len, twitter_len), 
+                     num_words = c(blogs_words, news_words, twitter_words))
+corp_stats %>% 
+    kable()
+```
+
+## Sampling the data  
+
+From what we see, the datasets are quite huge, so we'll need to select a small sample of them for the sake of simplicity. This of course might harm our analysis, but it should be fine for the purposes of this project.  
+We will select 1% of the lines in each document, and create a cumulative sample by merging together these 3 different samples.  
+
+```{r}
+set.seed(420)
+blogs_sample <- sample_frac(blogs_df, size = .01, replace = T)
+news_sample <- sample_frac(news_df, size = .01, replace = T)
+twitter_sample <- sample_frac(twitter_df, size = .01, replace = T)
+cum_sample <- bind_rows(blogs_sample, news_sample, twitter_sample)
+```
+
+```{r, include=FALSE}
+rm(blogs_df)
+rm(news_df)
+rm(twitter_df)
+```
+
+### Samples statistics  
+
+Now we can compute the same statistics seen above, but for our reduced samples.  
+
+```{r, include=FALSE}
+blogs_sample_size <- format(object.size(blogs_sample), unit = "MB")
+news_sample_size <- format(object.size(news_sample), unit = "MB")
+twitter_sample_size <- format(object.size(twitter_sample), unit = "MB")
+cum_sample_size <- format(object.size(cum_sample), unit = "MB")
+blogs_sample_len <- nrow(blogs_sample)
+news_sample_len <- nrow(news_sample)
+twitter_sample_len <- nrow(twitter_sample)
+cum_sample_len <- nrow(cum_sample)
+blogs_sample_words <- sum(stri_count_words(blogs_sample$line))
+news_sample_words <- sum(stri_count_words(news_sample$line))
+twitter_sample_words <- sum(stri_count_words(twitter_sample$line))
+cum_sample_words <- sum(stri_count_words(cum_sample$line))
+```
+
+```{r}
+sample_stats <- tibble(sample = c("blogs", "news", "twitter", "cumulative"), 
+                     size = c(blogs_sample_size, news_sample_size, twitter_sample_size, cum_sample_size), 
+                     num_lines = c(blogs_sample_len, news_sample_len, twitter_sample_len, cum_sample_len), 
+                     num_words = c(blogs_sample_words, news_sample_words, twitter_sample_words, cum_sample_words))
+sample_stats %>% 
+    kable()
+```
+
+After this sampling, the data should be much easier to analyse and manipulate, so we can proceed to clean and prepare it for the rest of the project.  
+
+```{r, include=FALSE}
+# save the data for future use
+save(blogs_sample, news_sample, twitter_sample, cum_sample, 
+     file = "./data/samples.RData")
+```
+
+## Cleaning the data  
+
+The data we have so far need to be cleaned a bit, this means removing common stop words ("the", "of", "in", etc.), removing punctuation and whitespaces, and converting every word to lowercase; we will also remove profanity words, based on a list available on [this GitHub repository](https://github.com/RobertJGabriel/Google-profanity-words).  
+This will of course harm the accuracy of our future predictions, but will ensure that the data are coherent and easy to work with.  
+We are going to use the `tm` package for this purpose.  
+
+```{r, include=FALSE}
+load("./data/samples.RData")
+```
+
+First we will create a so-called *corpus*, which contains our data in a suitable format.  
+
+```{r}
+corpus <- VCorpus(VectorSource(c(cum_sample)))
+```
+
+Now we can apply all the desired transformations and cleaning steps.  
+
+```{r}
+corpus <- tm_map(corpus, stripWhitespace)
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removeWords, stopwords("en"))
+corpus <- tm_map(corpus, removePunctuation, preserve_intra_word_contractions = T)
+tospace <- content_transformer(function(x, pattern) {return (gsub(pattern, " ", x))})
+corpus <- tm_map(corpus, tospace, "–")
+corpus <- tm_map(corpus, tospace, "”")
+corpus <- tm_map(corpus, tospace, "“")
+corpus <- tm_map(corpus, tospace, "…")
+corpus <- tm_map(corpus, removeNumbers)
+remove_url <- function(x) gsub("(f|ht)tp(s?)://(.*)[.][a-z]+", " ", x)
+corpus <- tm_map(corpus, content_transformer(remove_url))
+remove_handles <- function(x) gsub("@[^\\s]+", " ", x)
+corpus <- tm_map(corpus, content_transformer(remove_handles))
+profanity <- readLines("./data/profanity.txt")
+corpus <- tm_map(corpus, removeWords, profanity)
+corpus <- tm_map(corpus, stripWhitespace)
+```
+
+Now we are ready to perform some analysis and gain a few interesting insights from our data.  
+
+## n-grams Statistics  
+
+The clean corpus we generated can be used to analyse word frequencies, as well as a couple of n-grams frequencies. An n-gram is a contiguous sequence of *n* items (in this case, words) from a given corpus; we will explore bi-grams (*n* = 2) and tri-grams (*n* = 3).  
+In order to do this, we must first create a document-term matrix, which contains the frequency of each n-gram over the three documents we have (blogs, news and tweets).  
+We are going to use the `RWeka` library for this purpose.  
+
+### 1-grams  
+
+```{r}
+dtm1 <- DocumentTermMatrix(corpus)
+top_1gram <- findMostFreqTerms(dtm1, n = 30)$`1`
+top_1gram
+```
+
+```{r, dpi=130}
+df_1gram <- tibble(word = names(top_1gram), freq = top_1gram)
+p_1gram <- df_1gram %>% 
+    ggplot(aes(x = reorder(word, -freq), y = freq, label = word)) + 
+    geom_col(fill = "steelblue") + 
+    labs(x = "", y = "Frequency", title = "Distribution of top 30 words") + 
+    theme_light() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+ggplotly(p_1gram, tooltip = c("freq", "word"))
+```
+
+### 2-grams  
+
+```{r}
+bi_gram_tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+dtm2 <- DocumentTermMatrix(corpus, control = list(tokenize = bi_gram_tokenizer))
+top_2gram <- findMostFreqTerms(dtm2, n = 30)$`1`
+top_2gram
+```
+
+```{r, dpi=130}
+df_2gram <- tibble(word = names(top_2gram), freq = top_2gram)
+p_2gram <- df_2gram %>% 
+    ggplot(aes(x = reorder(word, -freq), y = freq, label = word)) + 
+    geom_col(fill = "seagreen") + 
+    labs(x = "", y = "Frequency", title = "Distribution of top 30 bigrams") + 
+    theme_light() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplotly(p_2gram, tooltip = c("freq", "word"))
+```
+
+### 3-grams  
+
+```{r}
+tri_gram_tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
+dtm3 <- DocumentTermMatrix(corpus, control = list(tokenize = tri_gram_tokenizer))
+top_3gram <- findMostFreqTerms(dtm3, n = 30)$`1`
+top_3gram
+```
+
+```{r, dpi=130}
+df_3gram <- tibble(word = names(top_3gram), freq = top_3gram)
+p_3gram <- df_3gram %>% 
+    ggplot(aes(x = reorder(word, -freq), y = freq, label = word)) + 
+    geom_col(fill = "darksalmon") + 
+    labs(x = "", y = "Frequency", title = "Distribution of top 30 trigrams") + 
+    theme_light() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplotly(p_3gram, tooltip = c("freq", "word"))
+```
+
+## Discussion and remarks  
+
+The provided dataset is composed of three different documents: blog posts, news and tweets. Our aim was to understand their structure and peculiarities in order to build a text prediction model, similar to those working daily on our smartphones.  
+I could have chosen to use only the blog posts and news text, since usually tweets can contain many more mistakes and contractions due to the 140-letter restriction; however, this so-called *Twitter slang* has become part of the common English language, so for the sake of completeness I included the tweets dataset into the data analysis as well.  
+In order to provide fast but reliable predictions, I had to sample these data; 1% of the original dataset seemed to be a reasonable amount, in order to achieve fast computations while still being representative of the whole corpus. This should be enough for the purpose of this project.  
+Stop words were removed, so we may not be able to predict some super-common words such as "and", "or", "in" and so on. An additional cleaning step would be word stemming, but this could have restricted our already-chopped dataset a bit too much, so I chose to avoid it.  
+
+All these choices might impair the accuracy of the prediction model, but hopefully the final application will still be able to perform quite well with the given amount of data.  
+
+## Future plans  
+
+The n-grams plots showed that some words are way more common than some others, and from the 2- and 3-grams plots it is evident how some of these words frequently appear together. This will be exploited for the creation of the prediction algorithm, which will probably take advantage of a back-off model, where the model would first look at the most common 3-grams (or maybe also 4-grams) in order to predict the next word, if nothing is found it will look in the 2-grams model and finally it will use the single-words model.  
+The final prediction application will be implemented as a ShinyApp.  
+
+
