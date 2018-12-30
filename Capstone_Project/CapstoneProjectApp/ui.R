@@ -2,7 +2,7 @@ library(shiny)
 
 shinyUI(fluidPage(
   
-    titlePanel("Capstone Project App: word prediction"),
+    titlePanel("Capstone Project App: Word Prediction"),
   
     sidebarLayout(
         sidebarPanel(
