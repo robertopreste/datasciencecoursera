@@ -2,7 +2,7 @@ library(shiny)
 
 shinyUI(fluidPage(
   
-    titlePanel("Capstone Project App"),
+    titlePanel("Capstone Project App: word prediction"),
   
     sidebarLayout(
         sidebarPanel(
@@ -17,11 +17,14 @@ shinyUI(fluidPage(
             actionButton("predictButton", "Predict")
         ),
         mainPanel(
-            p("Predicted word: "), 
+            p("This Shiny App allows to predict the most probable word to follow a given sentence."), 
+            p("Predictions are made based on a corpus deriving from blog posts, news and tweets, using a Katz back-off model."), 
+            h3("Usage"), 
+            p("Enter a sentence in the text input box, then click on Predict to get the predicted word."), 
+            p("It is also possible to change the bigram and trigram discounts for the prediction."), 
             strong(textOutput("pred")), 
-            p("Prediction probability: "), 
             strong(textOutput("prob")), 
-            p("Most probable words: "), 
+            br(), 
             plotOutput("pred_plot")
         )
     )

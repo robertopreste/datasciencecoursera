@@ -64,10 +64,10 @@ shinyServer(function(input, output) {
     })
     
     output$pred <- renderText({
-        most_prob()[1]
+        paste0("Predicted word: ", most_prob()[1])
     })
     output$prob <- renderText({
-        round(as.numeric(most_prob()[2]), 5) 
+        paste0("Prediction probability: ", round(as.numeric(most_prob()[2]), 5))
     })
     
     output$pred_plot <- renderPlot({
