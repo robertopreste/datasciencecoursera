@@ -3,6 +3,15 @@
 .RData
 .Ruserdata
 .DS_Store
+datasciencecoursera.Rproj
+Capstone_Project/data/
+Capstone_Project/rsconnect/
+Capstone_Project/Task_1.Rmd
+Capstone_Project/Task_2.Rmd
+Capstone_Project/clean_corpus*
+Capstone_Project/Final_Report*
+Capstone_Project/Milestone_Report_cache/
+Capstone_Project/CapstoneProjectApp/rsconnect/
+Capstone_Project/CapstoneProjectPitch/rsconnect/
 R_Programming/ProgrammingAssignment2
 Exploratory_Data_Analysis/ExData_Plotting1
-Capstone_Project/data/
