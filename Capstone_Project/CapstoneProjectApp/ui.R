@@ -25,7 +25,9 @@ shinyUI(fluidPage(
             strong(textOutput("pred")), 
             strong(textOutput("prob")), 
             br(), 
-            plotOutput("pred_plot")
+            plotOutput("pred_plot"), 
+            a(href = "https://github.com/robertopreste/datasciencecoursera/tree/master/Capstone_Project", 
+              "Documentation")
         )
     )
 ))
